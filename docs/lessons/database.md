@@ -224,7 +224,7 @@ Railway databases are **private** by default (`*.railway.internal`). Your laptop
 
 Run from the top project folder, with no uncommitted changes (`git status`).
 
-1. `git ls-remote origin`: empty output means GitHub has no `main`. (If `refs/heads/main` is listed, skip to step 4.)
+1. `git ls-remote origin`: empty output means GitHub has no `main`. **If `refs/heads/main` is listed, skip to step 4.** Steps 2–3 are a one-time setup for an empty repo. If you run them when `main` already exists, `git switch --orphan main` fails, you stay on your feature branch, and `git commit --allow-empty` adds an empty commit *there* by mistake. Always read the output of `git switch` before running the next command.
 2. `git switch --orphan main`, then `git commit --allow-empty -m "chore: initial commit"`: an empty starting commit. Files seem to vanish but are safe in your feature branch.
 3. `git push -u origin main`: creates `main` on GitHub.
 4. `git switch feat/database`, then `git rebase main`: replays your commits on top of `main`. ✅ `Successfully rebased`. Only rebase branches you haven't pushed yet, or that only you use.
