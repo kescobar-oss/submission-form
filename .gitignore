@@ -11,6 +11,8 @@ node_modules/
 # Build output that tools generate. It can always be rebuilt, so there's no point saving it.
 dist/
 .next/
+# TypeScript's incremental-build cache; rewritten on every build.
+*.tsbuildinfo
 
 # Clutter that operating systems and editors leave behind.
 .DS_Store
