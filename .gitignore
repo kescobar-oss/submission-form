@@ -1,0 +1,17 @@
+# Downloaded libraries. npm can re-create these from package.json, so saving them would only bloat the repo.
+node_modules/
+
+# Secrets (passwords, database URLs, API keys) live in .env files. Never commit them.
+# This catches .env, .env.local, .env.production, and so on, in every folder.
+.env
+.env.*
+# ...except the example files, which only contain fake placeholder values and are meant to be shared.
+!.env.example
+
+# Build output that tools generate. It can always be rebuilt, so there's no point saving it.
+dist/
+.next/
+
+# Clutter that operating systems and editors leave behind.
+.DS_Store
+Thumbs.db
