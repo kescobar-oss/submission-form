@@ -1,0 +1,50 @@
+// The single source of truth for what our database looks like.
+// Change this file, then run a migration so the real database catches up.
+
+// Tells Prisma to generate a TypeScript client from this schema, so the API
+// can talk to the database with autocompleted, type-checked code.
+// The output folder is git-ignored because it is rebuilt by `prisma generate`.
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+// Which kind of database we use. The address itself (DATABASE_URL) is read
+// from the environment in prisma7.config.ts, so no secret ever lives in this file.
+datasource db {
+  provider = "postgresql"
+}
+
+// A fixed list of allowed values. The database itself rejects anything else,
+// so we can never end up with "bug", "Bug " and "BUG" as three different categories.
+enum Category {
+  BUG
+  IMPROVEMENT
+  NEW_FEATURE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// One model = one table. Each line below becomes one column.
+model FeatureRequest {
+  // Primary key. cuid() makes a random, unguessable ID (e.g. "cm1x9k2...") instead of 1, 2, 3,
+  // so nobody can guess other people's request IDs from the /success?id= link.
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  category    Category
+  priority    Priority
+  description String
+  // No default on purpose: the API must record the person's actual answer, never assume one.
+  consent     Boolean
+  // Filled in automatically by the database at the moment the row is saved.
+  createdAt   DateTime @default(now())
+
+  // The admin page lists requests "newest first". This index keeps that sorting fast
+  // even when the table grows to many thousands of rows.
+  @@index([createdAt])
+}
