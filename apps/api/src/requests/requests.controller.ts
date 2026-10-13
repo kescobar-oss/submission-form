@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { AdminKeyGuard } from '../auth/admin-key.guard.js';
 import { CreateRequestDto } from './dto/create-request.dto.js';
 import { RequestsService } from './requests.service.js';
 
@@ -17,8 +18,10 @@ export class RequestsController {
     return this.requestsService.create(body);
   }
 
-  // GET /requests. Returns everyone's personal data, so Step 5 puts AdminKeyGuard here.
+  // GET /requests. Returns everyone's personal data, so only the admin may call it.
+  // @UseGuards on this one method (not the whole class) keeps POST public.
   @Get()
+  @UseGuards(AdminKeyGuard)
   findAll() {
     return this.requestsService.findAll();
   }
