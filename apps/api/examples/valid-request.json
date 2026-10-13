@@ -1,0 +1,8 @@
+{
+  "name": "Karl Test",
+  "email": "karl-test@example.com",
+  "category": "IMPROVEMENT",
+  "priority": "MEDIUM",
+  "description": "Sent by hand with curl to see a 201.",
+  "consent": true
+}
