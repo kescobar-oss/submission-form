@@ -18,6 +18,10 @@
     "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": false,
+    // Prisma's generated client imports its own files as "./enums.ts". These two
+    // settings accept that, and rewrite ".ts" to ".js" in the built output so Node can run it.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "types": ["vitest/globals", "node"]
   }
 }
