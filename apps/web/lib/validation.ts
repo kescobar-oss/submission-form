@@ -66,3 +66,17 @@ export function validate(values: FormValues): FormErrors {
 
   return errors;
 }
+
+// The API's 400 messages start with the field's name, e.g. "email must be an email" or
+// "name must be longer than or equal to 2 characters". The first word tells us which field
+// to show it under. Anything that doesn't match a field goes in `other`, for a general Alert.
+export function apiMessagesToErrors(messages: string[]): { errors: FormErrors; other: string[] } {
+  const errors: FormErrors = {};
+  const other: string[] = [];
+  for (const message of messages) {
+    const field = message.split(' ')[0] as FieldName;
+    if (field in EMPTY_FORM && !errors[field]) errors[field] = message;
+    else other.push(message);
+  }
+  return { errors, other };
+}

@@ -2,6 +2,8 @@
 // A client component: this code runs in the visitor's browser, because it must react to
 // every keystroke and click. Server components can't do that; they run once to make HTML.
 import { useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import FormControl from '@mui/material/FormControl';
@@ -24,7 +26,9 @@ import {
   type Category,
   type Priority,
 } from '@/lib/types';
+import { createRequest } from '@/lib/api';
 import {
+  apiMessagesToErrors,
   DESCRIPTION_MAX,
   EMPTY_FORM,
   NAME_MAX,
@@ -40,6 +44,11 @@ export default function RequestForm() {
   const [values, setValues] = useState<FormValues>(EMPTY_FORM);
   // One message per field that failed validation; empty means no red text anywhere.
   const [errors, setErrors] = useState<FormErrors>({});
+  // The three UI states of a request. Loading: submitting is true. Error: alert holds a
+  // message. Success: we leave this page for /success, so it needs no state of its own.
+  const [submitting, setSubmitting] = useState(false);
+  const [alert, setAlert] = useState<string | null>(null);
+  const router = useRouter();
 
   // Every input calls this on change. It copies the old values, replaces one field, and
   // clears that field's error so the red text disappears as soon as you start fixing it.
@@ -48,13 +57,46 @@ export default function RequestForm() {
     setErrors((old) => ({ ...old, [field]: undefined }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  // async because it waits for the API; the page stays responsive while it does.
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     // A plain HTML form reloads the page on submit, which would wipe all the state.
     event.preventDefault();
+    setAlert(null);
     const found = validate(values);
     setErrors(found);
     if (Object.keys(found).length > 0) return; // Stop here: nothing is sent while anything is red.
-    // Part 2: send the request to the API here.
+
+    setSubmitting(true); // Loading state: disables the button and shows the spinner.
+    const result = await createRequest({
+      // validate() checked trimmed text, so we send trimmed text too.
+      name: values.name.trim(),
+      email: values.email.trim(),
+      // Safe to assert: validate() just confirmed these aren't '' any more.
+      category: values.category as Category,
+      priority: values.priority as Priority,
+      description: values.description.trim(),
+      consent: values.consent,
+    });
+
+    if (result.ok) {
+      // Success state: go to the confirmation page. The id goes in the URL so that page
+      // can show it; it's a random reference, not personal data.
+      router.push(`/success?id=${encodeURIComponent(result.data.id)}`);
+      return; // Keep the spinner on until the next page appears, so nobody clicks twice.
+    }
+
+    // Error state. `values` is never reset below, so everything typed stays in the form.
+    setSubmitting(false);
+    if (result.kind === 'validation') {
+      // The API disagreed with the browser's checks: show its messages next to the fields.
+      const fromApi = apiMessagesToErrors(result.messages);
+      setErrors(fromApi.errors);
+      if (fromApi.other.length > 0) setAlert(fromApi.other.join(' '));
+    } else if (result.kind === 'network') {
+      setAlert("We couldn't reach the server. Check your connection and try again; your answers are still here.");
+    } else {
+      setAlert('Something went wrong on our side. Please try again in a moment.');
+    }
   }
 
   return (
@@ -154,11 +196,19 @@ export default function RequestForm() {
             <FormHelperText>{errors.consent}</FormHelperText>
           </FormControl>
 
+          {/* Only drawn when there's a message. It sits right above the button, where your eyes
+              are after clicking it. severity="error" picks the red colour and icon. */}
+          {alert && <Alert severity="error">{alert}</Alert>}
+
           {/* Full width on phones (easier to tap), normal size from "sm" up. */}
           <Button
             type="submit"
             variant="contained"
             size="large"
+            // loading shows a spinner AND disables the button, so a double click can't
+            // send the same request twice.
+            loading={submitting}
+            loadingPosition="start"
             sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
           >
             Submit request
