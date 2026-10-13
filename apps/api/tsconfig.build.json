@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // "." instead of "./src" because Prisma Client lives in ../generated, outside src.
+    // As a result the build lands in dist/src/main.js (see nest-cli.json "entryFile").
+    "rootDir": "."
+  },
+  // "generated" is Prisma Client; it must be compiled along with our own code.
+  "include": ["src", "generated"],
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}
