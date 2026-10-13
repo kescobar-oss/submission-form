@@ -1,12 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service.js';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  // GET /health. Railway (or any uptime monitor) calls this to ask "is the API running?".
+  // It is public and touches no database, so it stays fast and can't leak anything.
+  @Get('health')
+  health() {
+    return { status: 'ok' };
   }
 }
