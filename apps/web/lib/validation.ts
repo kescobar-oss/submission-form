@@ -37,7 +37,8 @@ export const DESCRIPTION_MAX = 500;
 
 // "something@something.something" with no spaces. Looser than the API's @IsEmail, so a
 // rare address could pass here and still be caught by the API; that's fine, see top comment.
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Exported so the login and sign-up forms (lib/auth-validation.ts) use the same check.
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validate(values: FormValues): FormErrors {
   const errors: FormErrors = {};
