@@ -54,9 +54,11 @@ function HeaderActions() {
   // still refuses other roles if they type /submissions themselves.
   const isStaff = user.role === 'ADMIN' || user.role === 'DEVELOPER';
 
+  // Always ends on the login page. (Going home instead would race with RequireAuth, which
+  // also sends logged-out visitors on protected pages to /login; one fixed target avoids that.)
   function handleLogout() {
     auth.logout();
-    router.push('/');
+    router.push('/login');
   }
 
   return (
