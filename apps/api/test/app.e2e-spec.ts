@@ -36,6 +36,8 @@ describe('Feature requests API (e2e)', () => {
   beforeAll(async () => {
     // The guard reads ADMIN_KEY from the environment, so the test sets its own value.
     process.env.ADMIN_KEY = ADMIN_KEY;
+    // AuthModule refuses to start without a signing key. A fixed fake one is fine in tests.
+    process.env.JWT_SECRET = 'test-only-secret-that-is-at-least-32-chars';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
