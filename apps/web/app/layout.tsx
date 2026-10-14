@@ -5,6 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Container from '@mui/material/Container';
 import theme from '@/theme';
+import AuthProvider from '@/components/AuthProvider';
 import SiteHeader from '@/components/SiteHeader';
 
 // next/font downloads Roboto at build time and serves it from our own site, so visitors'
@@ -34,12 +35,16 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             {/* CssBaseline resets browser default styles (margins, fonts, background) so
                 pages look the same in every browser. It replaces the old globals.css. */}
             <CssBaseline />
-            <SiteHeader />
-            {/* Container centres the page and caps its width. The py value is responsive:
-                2 spacing units of vertical padding on phones, 4 from the "sm" breakpoint up. */}
-            <Container component="main" maxWidth="md" sx={{ py: { xs: 2, sm: 4 } }}>
-              {children}
-            </Container>
+            {/* Everything inside AuthProvider (the header and every page) can ask
+                "who's logged in?" with useAuth(). */}
+            <AuthProvider>
+              <SiteHeader />
+              {/* Container centres the page and caps its width. The py value is responsive:
+                  2 spacing units of vertical padding on phones, 4 from the "sm" breakpoint up. */}
+              <Container component="main" maxWidth="md" sx={{ py: { xs: 2, sm: 4 } }}>
+                {children}
+              </Container>
+            </AuthProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
