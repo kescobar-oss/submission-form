@@ -6,8 +6,8 @@ import type { TokenPayload } from './auth.service.js';
 // A request that has passed this guard carries the token's contents as request.user.
 export type AuthedRequest = Request & { user: TokenPayload };
 
-// "Are you logged in?" Runs before pipes and the controller (like AdminKeyGuard did),
-// so a request without a valid token never reaches any code that touches data.
+// "Are you logged in?" Guards run before pipes and the controller, so a request without
+// a valid token never reaches any code that touches data.
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly jwt: JwtService) {}

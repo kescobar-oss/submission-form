@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateRequestDto } from './dto/create-request.dto.js';
 
+// Who is submitting: taken from the login token by the controller, never from the body.
+export type Author = { id: string; name: string; email: string };
+
 // The service holds the database work. It knows nothing about HTTP (headers, status codes);
 // that is the controller's job. Keeping them apart means the same queries could be reused
 // from a script or a scheduled job, and can be unit-tested without a web server.
@@ -12,9 +15,11 @@ export class RequestsService {
   // pass a fake instead, so no real database is needed.
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: CreateRequestDto) {
+  create(data: CreateRequestDto, author: Author) {
     return this.prisma.featureRequest.create({
-      data,
+      // name and email are still stored on the request (the admin table shows them), but
+      // copied from the account; userId links the request to that account for "My requests".
+      data: { ...data, name: author.name, email: author.email, userId: author.id },
       // Ask the database to send back only these two columns. The name and email are saved,
       // but never travel back to the browser, so they can't leak through the response.
       select: { id: true, createdAt: true },
@@ -25,6 +30,15 @@ export class RequestsService {
     return this.prisma.featureRequest.findMany({
       // Newest first, as the admin page needs. The @@index([createdAt]) in the schema
       // keeps this sort fast as the table grows.
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Only the caller's own requests. The userId comes from their token, so nobody can ask
+  // for someone else's list. The @@index([userId]) in the schema keeps this lookup fast.
+  findMine(userId: string) {
+    return this.prisma.featureRequest.findMany({
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     });
   }

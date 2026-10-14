@@ -17,7 +17,8 @@ export function configureApp(app: INestApplication) {
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? false,
     methods: ['GET', 'POST'],
-    // x-admin-key must be listed, or the browser refuses to send it from /submissions.
-    allowedHeaders: ['Content-Type', 'x-admin-key'],
+    // Authorization carries the login token. It must be listed, or the browser refuses
+    // to send it from the website.
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 }
