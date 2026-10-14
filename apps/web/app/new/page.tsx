@@ -1,0 +1,42 @@
+import { Suspense } from 'react';
+import Skeleton from '@mui/material/Skeleton';
+import Typography from '@mui/material/Typography';
+import RequestForm from '@/components/RequestForm';
+import { CATEGORIES, type Category } from '@/lib/types';
+
+export const metadata = { title: 'New request | Feature Request Form' };
+
+// The folder name "new" makes this the page at /new. The welcome page links here with
+// ?category=BUG (or IMPROVEMENT / NEW_FEATURE) so the form opens with that choice made.
+// Like the success page, it isn't async: the heading is the same for everyone and can be
+// prepared ahead of time; only <FormWithCategory> waits for the address bar.
+export default function NewRequestPage({ searchParams }: PageProps<'/new'>) {
+  return (
+    <>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Submit a request
+      </Typography>
+      <Typography color="text.secondary" sx={{ mb: 3 }}>
+        Tell the product team what you found or what you&apos;d like.
+      </Typography>
+      {/* A grey placeholder the size of the form, shown for the moment before it appears. */}
+      <Suspense fallback={<Skeleton variant="rounded" height={560} />}>
+        <FormWithCategory searchParams={searchParams} />
+      </Suspense>
+    </>
+  );
+}
+
+// searchParams is a Promise in this Next.js version (the URL is only known per visit),
+// so this small part awaits it and then hands the category to the form.
+async function FormWithCategory({ searchParams }: Pick<PageProps<'/new'>, 'searchParams'>) {
+  const { category } = await searchParams;
+  return <RequestForm initialCategory={toCategory(category)} />;
+}
+
+// Anyone can type any address, e.g. /new?category=HACK or ?category=BUG&category=BUG.
+// Only an exact allowed value is used; everything else means "nothing pre-selected",
+// so a broken or tampered link can never put an invalid value in the form.
+function toCategory(value: string | string[] | undefined): Category | undefined {
+  return CATEGORIES.find((c) => c === value);
+}
