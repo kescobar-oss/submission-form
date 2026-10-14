@@ -26,12 +26,12 @@ import {
   type Category,
   type Priority,
 } from '@/lib/types';
+import { useAuth } from '@/components/AuthProvider';
 import { createRequest } from '@/lib/api';
 import {
   apiMessagesToErrors,
   DESCRIPTION_MAX,
   EMPTY_FORM,
-  NAME_MAX,
   validate,
   type FieldName,
   type FormErrors,
@@ -40,7 +40,11 @@ import {
 
 // initialCategory is a prop: the page that shows this form can say which category to start
 // with (the one picked on the welcome page). It's optional, so the form also works without it.
+// It's shown inside RequireAuth, so someone is always logged in by the time it appears.
 export default function RequestForm({ initialCategory }: { initialCategory?: Category }) {
+  const auth = useAuth();
+  // Who will be shown as "Submitting as ...". null only in the instant before a redirect.
+  const user = auth.status === 'authenticated' ? auth.user : null;
   // State: React's memory for this component. `values` is what's been typed so far;
   // calling setValues stores new values AND tells React to redraw the form with them.
   // The starting category is only a suggestion: the dropdown can still change it.
@@ -73,13 +77,12 @@ export default function RequestForm({ initialCategory }: { initialCategory?: Cat
     if (Object.keys(found).length > 0) return; // Stop here: nothing is sent while anything is red.
 
     setSubmitting(true); // Loading state: disables the button and shows the spinner.
+    // No name or email: the API takes them from the login token, which lib/api.ts adds.
     const result = await createRequest({
-      // validate() checked trimmed text, so we send trimmed text too.
-      name: values.name.trim(),
-      email: values.email.trim(),
       // Safe to assert: validate() just confirmed these aren't '' any more.
       category: values.category as Category,
       priority: values.priority as Priority,
+      // validate() checked trimmed text, so we send trimmed text too.
       description: values.description.trim(),
       consent: values.consent,
     });
@@ -112,32 +115,13 @@ export default function RequestForm({ initialCategory }: { initialCategory?: Cat
       <form onSubmit={handleSubmit} noValidate>
         {/* Stack: puts its children in a column with equal gaps, no margins needed. */}
         <Stack spacing={3}>
-          {/* A controlled input: `value` comes from state, and onChange writes back to state.
-              The text box shows whatever state says, so state is the single source of truth. */}
-          <TextField
-            label="Name"
-            value={values.name}
-            onChange={(e) => update('name', e.target.value)}
-            // error turns the field red; helperText is the small line underneath it.
-            error={Boolean(errors.name)}
-            helperText={errors.name}
-            required
-            fullWidth
-            slotProps={{ htmlInput: { maxLength: NAME_MAX } }}
-          />
-
-          <TextField
-            label="Email"
-            type="email"
-            value={values.email}
-            onChange={(e) => update('email', e.target.value)}
-            error={Boolean(errors.email)}
-            helperText={errors.email}
-            required
-            fullWidth
-            // Phones show the keyboard with @ and suggest saved addresses.
-            autoComplete="email"
-          />
+          {/* Name and email come from the account, so instead of two fields there's one line
+              saying who the request will be sent as. The API uses the login token, not this. */}
+          {user && (
+            <Alert severity="info" variant="outlined">
+              Submitting as <strong>{user.name}</strong> ({user.email})
+            </Alert>
+          )}
 
           {/* Select has no built-in error/helperText props, so FormControl groups the label,
               the dropdown and the message, and passes `error` down to all three. */}
@@ -175,10 +159,13 @@ export default function RequestForm({ initialCategory }: { initialCategory?: Cat
             <FormHelperText>{errors.priority}</FormHelperText>
           </FormControl>
 
+          {/* A controlled input: `value` comes from state, and onChange writes back to state.
+              The text box shows whatever state says, so state is the single source of truth. */}
           <TextField
             label="Description"
             value={values.description}
             onChange={(e) => update('description', e.target.value)}
+            // error turns the field red; helperText is the small line underneath it.
             error={Boolean(errors.description)}
             // Show the error if there is one, otherwise a live character count.
             helperText={errors.description ?? `${values.description.length} / ${DESCRIPTION_MAX}`}
@@ -197,7 +184,7 @@ export default function RequestForm({ initialCategory }: { initialCategory?: Cat
                   onChange={(e) => update('consent', e.target.checked)}
                 />
               }
-              label="I agree that my name and email are stored so the team can follow up."
+              label="I agree that my name and email are stored with this request so the team can follow up."
             />
             <FormHelperText>{errors.consent}</FormHelperText>
           </FormControl>

@@ -6,9 +6,8 @@ import { CATEGORIES, PRIORITIES, type Category, type Priority } from './types';
 
 // What the form holds while you type. category and priority start as '' (nothing chosen),
 // which a FeatureRequestInput doesn't allow; validation is what turns one into the other.
+// No name or email: they come from the logged-in account.
 export type FormValues = {
-  name: string;
-  email: string;
   category: Category | '';
   priority: Priority | '';
   description: string;
@@ -21,8 +20,6 @@ export type FieldName = keyof FormValues;
 export type FormErrors = Partial<Record<FieldName, string>>;
 
 export const EMPTY_FORM: FormValues = {
-  name: '',
-  email: '',
   category: '',
   priority: '',
   description: '',
@@ -30,6 +27,7 @@ export const EMPTY_FORM: FormValues = {
 };
 
 // Same limits as the API's @Length rules. Kept here so the form can show "120 / 500".
+// The name limits are used by the sign-up form (lib/auth-validation.ts).
 export const NAME_MIN = 2;
 export const NAME_MAX = 80;
 export const DESCRIPTION_MIN = 10;
@@ -42,16 +40,7 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validate(values: FormValues): FormErrors {
   const errors: FormErrors = {};
-  const name = values.name.trim();
   const description = values.description.trim();
-
-  if (name.length === 0) errors.name = 'Please enter your name.';
-  else if (name.length < NAME_MIN) errors.name = `Name must be at least ${NAME_MIN} characters.`;
-  else if (name.length > NAME_MAX) errors.name = `Name must be at most ${NAME_MAX} characters.`;
-
-  if (values.email.trim().length === 0) errors.email = 'Please enter your email.';
-  else if (!EMAIL_PATTERN.test(values.email.trim()))
-    errors.email = 'Please enter a valid email, like name@example.com.';
 
   // includes() also rejects '' (nothing chosen), because '' isn't in the list.
   if (!CATEGORIES.includes(values.category as Category)) errors.category = 'Please choose a category.';

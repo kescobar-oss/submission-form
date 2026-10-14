@@ -24,9 +24,8 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 };
 
 // What the form sends to POST /requests. No id or createdAt: the database creates those.
+// No name or email either: the API copies them from the logged-in account.
 export type FeatureRequestInput = {
-  name: string;
-  email: string;
   category: Category;
   priority: Priority;
   description: string;
@@ -41,7 +40,12 @@ export type CreatedRequest = {
 
 // One row from GET /requests (admin only). createdAt is a string because JSON has no date
 // type; the API sends it as text like "2026-10-13T09:30:00.000Z".
-export type FeatureRequest = FeatureRequestInput & CreatedRequest;
+// name and email are the author's, as they were when the request was sent.
+export type FeatureRequest = FeatureRequestInput &
+  CreatedRequest & {
+    name: string;
+    email: string;
+  };
 
 // The three kinds of account, matching the Role enum in the API's Prisma schema.
 export const ROLES = ['USER', 'ADMIN', 'DEVELOPER'] as const;
