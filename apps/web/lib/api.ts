@@ -64,13 +64,10 @@ export function createRequest(input: FeatureRequestInput) {
   });
 }
 
-// GET /requests: every request, newest first. Admin only.
-export function listRequests(adminKey: string) {
-  return send<FeatureRequest[]>('/requests', {
-    // The key travels in a header, never in the URL, because URLs end up in browser
-    // history and server logs.
-    headers: { 'x-admin-key': adminKey },
-  });
+// GET /requests: every request, newest first. Admin and Developer only (others get 403).
+// The login token is added by send(), like on every call.
+export function listRequests() {
+  return send<FeatureRequest[]>('/requests', {});
 }
 
 // The shared part of every call: send, wait, then sort the reply into one of the outcomes.
