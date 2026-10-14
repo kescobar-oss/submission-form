@@ -73,9 +73,13 @@ function HeaderActions() {
       </Button>
       {/* Who's logged in. Hidden on phones (xs) so the buttons still fit on one line. */}
       <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1, ml: 1 }}>
-        <Typography variant="body2" noWrap sx={{ maxWidth: 140, fontWeight: 600 }}>
-          {user.name}
-        </Typography>
+        {/* Skip the name when it just repeats the role (the seed account is called "Admin"),
+            so the header doesn't read "Admin  Admin". Real names like "Karl" still show. */}
+        {user.name !== ROLE_LABELS[user.role] && (
+          <Typography variant="body2" noWrap sx={{ maxWidth: 140, fontWeight: 600 }}>
+            {user.name}
+          </Typography>
+        )}
         <Chip label={ROLE_LABELS[user.role]} size="small" color={isStaff ? 'primary' : 'default'} />
       </Box>
       <Button onClick={handleLogout} sx={navButtonSx}>
