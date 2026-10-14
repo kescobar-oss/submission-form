@@ -5,7 +5,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
-export const metadata = { title: 'Request received | Feature Request Form' };
+export const metadata = { title: 'Request received | Daily Monitoring Ticketing System' };
 
 // The folder name "success" makes this the page at /success. It's a server component:
 // nothing here reacts to clicks, so no JavaScript for it needs to reach the browser.

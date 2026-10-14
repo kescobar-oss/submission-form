@@ -1,7 +1,7 @@
 import Typography from '@mui/material/Typography';
 import SubmissionsView from '@/components/SubmissionsView';
 
-export const metadata = { title: 'Submissions | Feature Request Form' };
+export const metadata = { title: 'Submissions | Daily Monitoring Ticketing System' };
 
 // The page at /submissions. Like the home page, the static heading stays on the server and
 // only the interactive part (key field, Load button, table) is a client component.

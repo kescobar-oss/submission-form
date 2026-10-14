@@ -4,7 +4,7 @@ import Typography from '@mui/material/Typography';
 import RequestForm from '@/components/RequestForm';
 import { CATEGORIES, type Category } from '@/lib/types';
 
-export const metadata = { title: 'New request | Feature Request Form' };
+export const metadata = { title: 'New request | Daily Monitoring Ticketing System' };
 
 // The folder name "new" makes this the page at /new. The welcome page links here with
 // ?category=BUG (or IMPROVEMENT / NEW_FEATURE) so the form opens with that choice made.
