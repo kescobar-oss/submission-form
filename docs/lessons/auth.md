@@ -37,7 +37,7 @@ Passwords are stored only as bcrypt hashes, and 19 end-to-end tests prove the ru
 | `apps/web/components/AuthProvider.tsx` | TypeScript + JSX | Knows who's logged in; `useAuth()`. | Rarely. |
 | `apps/web/components/RequireAuth.tsx` | TypeScript + JSX | Wraps pages that need a login or a role. | Rarely. |
 | `apps/web/components/LoginForm.tsx`, `RegisterForm.tsx` | TypeScript + JSX | The two forms. | Sometimes. |
-| `apps/web/app/login/`, `app/register/`, `app/my-requests/` | TypeScript + JSX | The new pages. | Sometimes (wording). |
+| `apps/web/app/login/`, `app/register/` | TypeScript + JSX | The new pages. (`app/my-requests/` became `app/submissions/` in the status update below.) | Sometimes (wording). |
 | `apps/web/components/RequestsList.tsx`, `RequestsTable.tsx` | TypeScript + JSX | Load and show "all" or "mine"; replace the old admin-key view. | Yes, for new columns. |
 | `apps/web/components/SiteHeader.tsx` | TypeScript + JSX | Menu per role, name and role badge, Log out. | Yes, for new pages. |
 | `apps/web/components/RequestForm.tsx` | TypeScript + JSX | No more name/email fields; "Submitting as …". | Yes. |
@@ -62,7 +62,7 @@ Passwords are stored only as bcrypt hashes, and 19 end-to-end tests prove the ru
 
 ### 1. Hash passwords; never store them
 A bcrypt **hash** is a one-way scramble: logging in scrambles what you type and compares. The random **salt** makes the same password hash differently each time, and the **cost** (12) makes guessing from a stolen table very slow.
-👉 [auth.service.ts:28](../../apps/api/src/auth/auth.service.ts) (`bcrypt.hash(…, 12)`), [auth.service.ts:51](../../apps/api/src/auth/auth.service.ts) (`bcrypt.compare`), [schema.prisma:79](../../apps/api/prisma/schema.prisma) (`passwordHash`).
+👉 [auth.service.ts:28](../../apps/api/src/auth/auth.service.ts) (`bcrypt.hash(…, 12)`), [auth.service.ts:51](../../apps/api/src/auth/auth.service.ts) (`bcrypt.compare`), [schema.prisma:93](../../apps/api/prisma/schema.prisma) (`passwordHash`).
 
 ### 2. A JWT is signed, not secret
 The token's middle part is readable by anyone (we decoded it). What makes it safe is the **signature**: changing `USER` to `ADMIN` broke it and the API answered 401. Never put secrets in a token, and guard `JWT_SECRET`, since it can sign tokens for anyone.
@@ -70,11 +70,11 @@ The token's middle part is readable by anyone (we decoded it). What makes it saf
 
 ### 3. Authentication (401) vs. authorization (403)
 *Who are you?* is answered by `JwtAuthGuard`: no valid token, **401**. *Are you allowed?* is answered by `RolesGuard` reading the `@Roles` label: wrong role, **403**. Guards run in the order listed, before any pipe or controller.
-👉 [requests.controller.ts:16](../../apps/api/src/requests/requests.controller.ts) (`@UseGuards(JwtAuthGuard, RolesGuard)` on the class), line 30 (`@Roles('ADMIN', 'DEVELOPER')`), [roles.guard.ts:16-26](../../apps/api/src/auth/roles.guard.ts).
+👉 [requests.controller.ts:17](../../apps/api/src/requests/requests.controller.ts) (`@UseGuards(JwtAuthGuard, RolesGuard)` on the class), line 33 (`@Roles('ADMIN', 'DEVELOPER')`), [roles.guard.ts:16-26](../../apps/api/src/auth/roles.guard.ts).
 
 ### 4. Identity comes from the token, never the body
 Anyone can type any name into a form or a curl command. The API takes name, email and user id from the signed token, and the body's attempts are stripped. Sign-up has no `role` field at all, so `role: "ADMIN"` is thrown away and the database default `USER` applies.
-👉 [requests.controller.ts:25](../../apps/api/src/requests/requests.controller.ts), [schema.prisma:81](../../apps/api/prisma/schema.prisma) (`@default(USER)`).
+👉 [requests.controller.ts:28](../../apps/api/src/requests/requests.controller.ts), [schema.prisma:95](../../apps/api/prisma/schema.prisma) (`@default(USER)`).
 
 ### 5. Don't leak which emails have accounts
 Wrong password and unknown email give the same 401, with the same words, after the same delay, because bcrypt runs against a dummy hash when there's no user. Otherwise an attacker could test emails one by one.
@@ -82,7 +82,7 @@ Wrong password and unknown email give the same 401, with the same words, after t
 
 ### 6. The website hides; the API protects
 `RequireAuth` and the role-aware header only spare people from errors. Anyone can skip the website, so every rule is enforced again by the API's guards. Hiding a page is never security.
-👉 [RequireAuth.tsx:31-41](../../apps/web/components/RequireAuth.tsx) vs. [requests.controller.ts:16](../../apps/api/src/requests/requests.controller.ts).
+👉 [RequireAuth.tsx:34-44](../../apps/web/components/RequireAuth.tsx) vs. [requests.controller.ts:17](../../apps/api/src/requests/requests.controller.ts).
 
 ### 7. Where the token lives, and the trade-off
 `sessionStorage` survives page loads but is wiped when the tab closes. A cookie would be safer from malicious scripts, but our site and API will live on different domains, and browsers block such cookies. So we combine `sessionStorage` with a short expiry and React's automatic escaping of text. Every call gets the header in one place, so no page can forget it.
@@ -136,13 +136,84 @@ Our first `RequireAuth` took a function as its child; the server page couldn't s
 ## f. Exercises (easiest first)
 
 ### 1. Change how long a login lasts
-In `apps/api/src/auth/auth.module.ts`, change `expiresIn: '8h'` to `'1m'`. Restart the API, log in, wait two minutes and click Refresh on "My requests". You'll be sent to the login page, because the token expired. Change it back afterwards.
+In `apps/api/src/auth/auth.module.ts`, change `expiresIn: '8h'` to `'1m'`. Restart the API, log in, wait two minutes and click Refresh on "Submissions". You'll be sent to the login page, because the token expired. Change it back afterwards.
 
 ### 2. Read your own token
 While logged in, open the browser's developer tools (F12) → Console, and run `JSON.parse(atob(sessionStorage.getItem('dmts.token').split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))`. (The two `replace` calls turn the token's URL-safe letters back into the ones `atob` expects.) You'll see your id, name, role, `iat` and `exp`, readable by anyone, which is why tokens never hold secrets.
 
 ### 3. Require a longer password
 Make sign-up demand 10 characters. Change `@Length(8, 72)` in `apps/api/src/auth/dto/register.dto.ts` **and** `PASSWORD_MIN = 8` in `apps/web/lib/auth-validation.ts`. Then add an e2e test in `apps/api/test/app.e2e-spec.ts` that a 9-character password gets 400.
+
+---
+
+## Update: ticket statuses
+
+Branch `feat/ticket-status`, added after login was merged.
+
+**What changed.**
+- Every ticket now has a **status**: Open (the default for new tickets), In Progress, Paused, Completed or Rejected.
+- Admin and Developer are **staff**:
+  - They land on **Tickets** (`/tickets`) after logging in, and never see the welcome page.
+  - They change a ticket's status from a dropdown.
+  - They can't submit tickets: the website hides the form, and the API answers 403.
+- Users submit as before. Their list, now called **Submissions** (`/submissions`, formerly "My requests"), shows each ticket's current status as a coloured badge, so they can see what staff decided.
+
+**New and changed files**
+
+| Path | Language | Purpose | Will you edit it again? |
+|---|---|---|---|
+| `apps/api/prisma/schema.prisma` + migration `…_add_ticket_status` | Prisma / SQL | `Status` enum and `status @default(OPEN)` on each ticket. | Yes, to add a status. |
+| `apps/api/src/requests/dto/update-status.dto.ts` | TypeScript | Only the five statuses are accepted (400 otherwise). | When statuses change. |
+| `apps/api/src/requests/requests.controller.ts` / `.service.ts` | TypeScript | `PATCH /requests/:id/status` (staff, 404 for unknown tickets); `POST` is USER only. | Yes. |
+| `apps/api/src/app.setup.ts` | TypeScript | CORS now allows `PATCH`. | Rarely. |
+| `apps/web/lib/roles.ts` | TypeScript | Who is staff, and each role's start page. | When roles change. |
+| `apps/web/components/StaffRedirect.tsx` | TypeScript + JSX | Sends staff from `/` to `/tickets`. | Rarely. |
+| `apps/web/app/tickets/page.tsx` | TypeScript + JSX | Staff ticket list (was `/submissions`). | Sometimes. |
+| `apps/web/app/submissions/page.tsx` | TypeScript + JSX | A User's own list with status (was `/my-requests`). | Sometimes. |
+| `apps/web/components/RequestsTable.tsx`, `RequestsList.tsx` | TypeScript + JSX | Status column: dropdown for staff, badge for Users; saving and undo. | Yes. |
+
+**A status change's journey**
+1. On `/tickets`, the Admin picks **In Progress** in a row's dropdown.
+2. `RequestsList` updates the row on screen straight away, then calls `updateStatus()` in `lib/api.ts`.
+3. The browser first asks the API, with an `OPTIONS` preflight, whether a `PATCH` with an `Authorization` header is allowed (CORS). Then it sends `PATCH /requests/<id>/status` with `{ "status": "IN_PROGRESS" }`.
+4. `JwtAuthGuard` checks the token (401), and `RolesGuard` checks for ADMIN or DEVELOPER (403). The `ValidationPipe` checks the status is one of the five (400).
+5. The service updates that one row. If no row has that id, Prisma's `P2025` becomes a **404**. Otherwise it returns `{ id, status }` with **200**.
+6. The website shows "Status saved", or, on any failure, puts the old status back and explains why.
+7. The User opens **Submissions**, `GET /requests/mine` returns their rows including `status`, and the badge reads **In Progress**.
+
+**Takeaways**
+
+1. **PATCH and route parameters.** `PATCH` means "change part of something that exists". The `:id` in `/requests/:id/status` is a **route parameter**, and Nest hands it over through `@Param('id')`.
+   👉 [requests.controller.ts:44-51](../../apps/api/src/requests/requests.controller.ts)
+2. **Turn "not found" into 404, not 500.** A wrong id is the caller's problem, not a server failure. Prisma reports it as `P2025`, and the service translates that into `NotFoundException`.
+   👉 [requests.service.ts:48-51](../../apps/api/src/requests/requests.service.ts)
+3. **A default makes a new required column safe.** Adding `status` to a table that already had rows only works because `@default(OPEN)` gives the old rows a value.
+   👉 [schema.prisma:49](../../apps/api/prisma/schema.prisma)
+4. **Optimistic updates.** Change the screen first, save in the background, and undo if saving fails. It feels instant without ever lying for long: we tested the undo by simulating a dropped network.
+   👉 [RequestsList.tsx:76-104](../../apps/web/components/RequestsList.tsx), especially line 81 (show) and line 94 (undo).
+5. **One place decides who is staff.** The header, the login redirect and the page guards all ask `lib/roles.ts`, and the API's `@Roles` labels enforce the same split. Never rely on the website alone.
+   👉 [roles.ts:6-17](../../apps/web/lib/roles.ts), [requests.controller.ts:26](../../apps/api/src/requests/requests.controller.ts) (`@Roles('USER')` on POST)
+6. **Commit before you experiment.** `git restore` returns a file to its **last commit**, so using it to undo a deliberate break also threw away uncommitted work and the controller had to be rewritten. Commit first, then break things on purpose.
+
+**Glossary additions**
+
+| Term | Meaning |
+|---|---|
+| **Status** | Where a ticket stands: Open, In Progress, Paused, Completed, Rejected. |
+| **PATCH** | The HTTP method for changing part of an existing thing. |
+| **Route parameter** | A changing part of a URL, like `:id`, read with `@Param`. |
+| **404 Not Found** | The thing asked about doesn't exist. |
+| **P2025** | Prisma's error code for "no row matched". |
+| **Optimistic update** | Show a change before the server confirms it, and undo if it fails. |
+| **Snackbar** | A short message at the bottom of the screen that disappears by itself. |
+| **Staff** | Here: the Admin and Developer roles. |
+
+**Exercise.** Add a sixth status, **Duplicate**:
+1. Add `DUPLICATE` to the `Status` enum in `apps/api/prisma/schema.prisma`, then run `npx prisma migrate dev --name add-duplicate-status` and `npx prisma generate` from `apps/api`.
+2. In `apps/web/lib/types.ts`, add it to `STATUSES` and `STATUS_LABELS`.
+3. In `apps/web/components/RequestsTable.tsx`, give it a colour in `STATUS_COLORS`.
+
+TypeScript will point at every place you forgot, because each list must cover every status. The API's validation picks it up automatically from the schema.
 
 ---
 
