@@ -43,7 +43,14 @@ function HeaderActions() {
         <Button component={Link} href="/login" sx={navButtonSx}>
           Log in
         </Button>
-        <Button component={Link} href="/register" variant="contained" size="small">
+        {/* nowrap: on phones "Sign up" would otherwise fold onto two lines. */}
+        <Button
+          component={Link}
+          href="/register"
+          variant="contained"
+          size="small"
+          sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
           Sign up
         </Button>
       </Box>
@@ -149,6 +156,9 @@ export default function SiteHeader() {
                 fontSize: { xs: '0.95rem', sm: '1.125rem' },
                 lineHeight: 1.2,
                 whiteSpace: { xs: 'normal', sm: 'nowrap' },
+                // On the very smallest phones (under 360 px) there's no room for the name next
+                // to the buttons, so only the logo shows. It still links home.
+                '@media (max-width: 359.95px)': { display: 'none' },
               }}
             >
               Daily Monitoring Ticketing System

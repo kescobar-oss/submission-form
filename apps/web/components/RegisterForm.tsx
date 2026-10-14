@@ -5,11 +5,15 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Paper from '@mui/material/Paper';
+import InputAdornment from '@mui/material/InputAdornment';
+import MuiLink from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import { useAuth } from '@/components/AuthProvider';
+import PasswordField from '@/components/PasswordField';
 import { PASSWORD_MAX, PASSWORD_MIN, validateRegister, type AuthErrors } from '@/lib/auth-validation';
 import { NAME_MAX } from '@/lib/validation';
 
@@ -52,57 +56,82 @@ export default function RegisterForm({ next }: { next: string }) {
     }
   }
 
+  // No Paper here: AuthCard (on the page) draws the card around this form.
   return (
-    <Paper sx={{ p: { xs: 2, sm: 4 } }}>
-      <form onSubmit={handleSubmit} noValidate>
-        <Stack spacing={3}>
-          {alert && <Alert severity="error">{alert}</Alert>}
-          <TextField
-            label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            error={Boolean(errors.name)}
-            helperText={errors.name}
-            autoComplete="name"
-            autoFocus
-            required
-            fullWidth
-            slotProps={{ htmlInput: { maxLength: NAME_MAX } }}
-          />
-          <TextField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={Boolean(errors.email)}
-            helperText={errors.email}
-            autoComplete="email"
-            required
-            fullWidth
-          />
-          <TextField
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={Boolean(errors.password)}
-            // Show the rule up front, so nobody has to fail once to learn it.
-            helperText={errors.password ?? `At least ${PASSWORD_MIN} characters.`}
-            // "new-password" tells password managers to offer a strong generated password.
-            autoComplete="new-password"
-            required
-            fullWidth
-            slotProps={{ htmlInput: { maxLength: PASSWORD_MAX } }}
-          />
-          <Button type="submit" variant="contained" size="large" loading={submitting}>
-            Create account
-          </Button>
-          <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-            Already have an account?{' '}
-            <Link href={`/login?next=${encodeURIComponent(next)}`}>Log in</Link>
-          </Typography>
-        </Stack>
-      </form>
-    </Paper>
+    <form onSubmit={handleSubmit} noValidate>
+      <Stack spacing={3}>
+        {alert && <Alert severity="error">{alert}</Alert>}
+        <TextField
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          error={Boolean(errors.name)}
+          helperText={errors.name}
+          autoComplete="name"
+          autoFocus
+          required
+          fullWidth
+          slotProps={{
+            htmlInput: { maxLength: NAME_MAX },
+            // Small icons inside the fields, the same style as the login form.
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PersonOutlineRoundedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <TextField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={Boolean(errors.email)}
+          helperText={errors.email}
+          autoComplete="email"
+          required
+          fullWidth
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <MailOutlineRoundedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        {/* Lock icon + show/hide button, shared with the login form. */}
+        <PasswordField
+          label="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={Boolean(errors.password)}
+          // Show the rule up front, so nobody has to fail once to learn it.
+          helperText={errors.password ?? `At least ${PASSWORD_MIN} characters.`}
+          // "new-password" tells password managers to offer a strong generated password.
+          autoComplete="new-password"
+          required
+          fullWidth
+          slotProps={{ htmlInput: { maxLength: PASSWORD_MAX } }}
+        />
+        <Button type="submit" variant="contained" size="large" fullWidth loading={submitting}>
+          Create account
+        </Button>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+          Already have an account?{' '}
+          <MuiLink
+            component={Link}
+            href={`/login?next=${encodeURIComponent(next)}`}
+            underline="hover"
+            sx={{ fontWeight: 600 }}
+          >
+            Log in
+          </MuiLink>
+        </Typography>
+      </Stack>
+    </form>
   );
 }
