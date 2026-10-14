@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import RequestForm from '@/components/RequestForm';
+import RequireAuth from '@/components/RequireAuth';
 import { CATEGORIES, type Category } from '@/lib/types';
 
 export const metadata = { title: 'New request | Daily Monitoring Ticketing System' };
@@ -31,7 +32,15 @@ export default function NewRequestPage({ searchParams }: PageProps<'/new'>) {
 // so this small part awaits it and then hands the category to the form.
 async function FormWithCategory({ searchParams }: Pick<PageProps<'/new'>, 'searchParams'>) {
   const { category } = await searchParams;
-  return <RequestForm initialCategory={toCategory(category)} />;
+  const initialCategory = toCategory(category);
+  // If they're not logged in, RequireAuth sends them to /login and back here afterwards,
+  // with the category they picked still in the address.
+  const next = initialCategory ? `/new?category=${initialCategory}` : '/new';
+  return (
+    <RequireAuth next={next}>
+      <RequestForm initialCategory={initialCategory} />
+    </RequireAuth>
+  );
 }
 
 // Anyone can type any address, e.g. /new?category=HACK or ?category=BUG&category=BUG.

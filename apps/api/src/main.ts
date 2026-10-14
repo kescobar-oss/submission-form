@@ -1,5 +1,5 @@
 // Must stay the first import: it copies apps/api/.env into process.env before any
-// other file reads DATABASE_URL, ADMIN_KEY, etc. On Railway there is no .env file;
+// other file reads DATABASE_URL, JWT_SECRET, etc. On Railway there is no .env file;
 // the variables are set in the dashboard instead, and this line simply finds nothing to load.
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';

@@ -7,8 +7,87 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
+import { ROLE_LABELS } from '@/lib/types';
+
+// Shared look for the header's text buttons. On phones (xs): less side padding and slightly
+// smaller text, so up to three buttons fit beside the title. nowrap keeps "My requests" on
+// one line instead of folding it in two.
+const navButtonSx = {
+  minWidth: 0,
+  px: { xs: 0.75, sm: 1.5 },
+  fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+  whiteSpace: 'nowrap',
+  color: 'text.secondary',
+} as const;
+
+// The right-hand side of the header, which depends on who's logged in.
+// component={Link} renders MUI's button styling but navigates like a Next.js link, so moving
+// between pages doesn't reload the whole site. There's no "New" button: the logo and title
+// already lead home, where a new request starts.
+function HeaderActions() {
+  const auth = useAuth();
+  const router = useRouter();
+
+  // While the saved login is being checked, show nothing rather than the wrong buttons.
+  if (auth.status === 'loading') return null;
+
+  if (auth.status === 'anonymous') {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Button component={Link} href="/login" sx={navButtonSx}>
+          Log in
+        </Button>
+        <Button component={Link} href="/register" variant="contained" size="small">
+          Sign up
+        </Button>
+      </Box>
+    );
+  }
+
+  const { user } = auth;
+  // Only staff see the link to everyone's requests. This only tidies the menu: the API
+  // still refuses other roles if they type /submissions themselves.
+  const isStaff = user.role === 'ADMIN' || user.role === 'DEVELOPER';
+
+  // Always ends on the login page. (Going home instead would race with RequireAuth, which
+  // also sends logged-out visitors on protected pages to /login; one fixed target avoids that.)
+  function handleLogout() {
+    auth.logout();
+    router.push('/login');
+  }
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 1 } }}>
+      {isStaff && (
+        <Button component={Link} href="/submissions" sx={navButtonSx}>
+          Submissions
+        </Button>
+      )}
+      <Button component={Link} href="/my-requests" sx={navButtonSx}>
+        My requests
+      </Button>
+      {/* Who's logged in. Hidden on phones (xs) so the buttons still fit on one line. */}
+      <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1, ml: 1 }}>
+        {/* Skip the name when it just repeats the role (the seed account is called "Admin"),
+            so the header doesn't read "Admin  Admin". Real names like "Karl" still show. */}
+        {user.name !== ROLE_LABELS[user.role] && (
+          <Typography variant="body2" noWrap sx={{ maxWidth: 140, fontWeight: 600 }}>
+            {user.name}
+          </Typography>
+        )}
+        <Chip label={ROLE_LABELS[user.role]} size="small" color={isStaff ? 'primary' : 'default'} />
+      </Box>
+      <Button onClick={handleLogout} sx={navButtonSx}>
+        Log out
+      </Button>
+    </Box>
+  );
+}
 
 export default function SiteHeader() {
   return (
@@ -73,18 +152,7 @@ export default function SiteHeader() {
               Daily Monitoring Ticketing System
             </Typography>
           </Box>
-          {/* component={Link} renders MUI's button styling but navigates like a Next.js link,
-              so moving between pages doesn't reload the whole site. There's no "New" button:
-              the logo and title already lead home, where a new request starts.
-              Less side padding on phones (xs) leaves more room for the title. */}
-          <Button
-            color="inherit"
-            component={Link}
-            href="/submissions"
-            sx={{ minWidth: 0, px: { xs: 1, sm: 2 }, color: 'text.secondary' }}
-          >
-            Submissions
-          </Button>
+          <HeaderActions />
         </Toolbar>
       </Container>
     </AppBar>

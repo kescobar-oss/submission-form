@@ -28,25 +28,27 @@ describe('RequestsService', () => {
 
   describe('create', () => {
     const input = {
-      name: 'Ada Lovelace',
-      email: 'ada@example.com',
       category: 'BUG' as const,
       priority: 'HIGH' as const,
       description: 'The submit button does nothing.',
       consent: true as const,
     };
+    const author = { id: 'user-1', name: 'Ada Lovelace', email: 'ada@example.com' };
 
-    it('saves the submitted fields', async () => {
-      await service.create(input);
+    // Name and email come from the logged-in account, and userId links the request to it.
+    it('saves the submitted fields plus the author from the account', async () => {
+      await service.create(input, author);
       expect(fakePrisma.featureRequest.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: input }),
+        expect.objectContaining({
+          data: { ...input, name: 'Ada Lovelace', email: 'ada@example.com', userId: 'user-1' },
+        }),
       );
     });
 
     // The privacy rule: the database is asked for id and createdAt only,
     // so name and email can never end up in the response.
     it('asks the database for only id and createdAt', async () => {
-      await service.create(input);
+      await service.create(input, author);
       expect(fakePrisma.featureRequest.create).toHaveBeenCalledWith(
         expect.objectContaining({ select: { id: true, createdAt: true } }),
       );
@@ -55,7 +57,18 @@ describe('RequestsService', () => {
     it('returns what the database returned', async () => {
       const saved = { id: 'abc123', createdAt: new Date('2026-10-13T08:00:00Z') };
       fakePrisma.featureRequest.create.mockResolvedValue(saved);
-      await expect(service.create(input)).resolves.toEqual(saved);
+      await expect(service.create(input, author)).resolves.toEqual(saved);
+    });
+  });
+
+  describe('findMine', () => {
+    // The whole point of "My requests": the query is limited to the caller's userId.
+    it("only asks for the caller's own requests, newest first", async () => {
+      await service.findMine('user-1');
+      expect(fakePrisma.featureRequest.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        orderBy: { createdAt: 'desc' },
+      });
     });
   });
 
