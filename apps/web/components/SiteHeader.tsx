@@ -12,11 +12,12 @@ import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import { isStaff } from '@/lib/roles';
 import { ROLE_LABELS } from '@/lib/types';
 
 // Shared look for the header's text buttons. On phones (xs): less side padding and slightly
-// smaller text, so up to three buttons fit beside the title. nowrap keeps "My requests" on
-// one line instead of folding it in two.
+// smaller text, so the buttons fit beside the title. nowrap keeps each label on one line
+// instead of folding it in two.
 const navButtonSx = {
   minWidth: 0,
   px: { xs: 0.75, sm: 1.5 },
@@ -50,9 +51,9 @@ function HeaderActions() {
   }
 
   const { user } = auth;
-  // Only staff see the link to everyone's requests. This only tidies the menu: the API
-  // still refuses other roles if they type /submissions themselves.
-  const isStaff = user.role === 'ADMIN' || user.role === 'DEVELOPER';
+  // Staff get Tickets, Users get their Submissions. This only tidies the menu: the API still
+  // refuses the wrong role whatever address someone types.
+  const staff = isStaff(user.role);
 
   // Always ends on the login page. (Going home instead would race with RequireAuth, which
   // also sends logged-out visitors on protected pages to /login; one fixed target avoids that.)
@@ -63,14 +64,15 @@ function HeaderActions() {
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 1 } }}>
-      {isStaff && (
+      {staff ? (
+        <Button component={Link} href="/tickets" sx={navButtonSx}>
+          Tickets
+        </Button>
+      ) : (
         <Button component={Link} href="/submissions" sx={navButtonSx}>
           Submissions
         </Button>
       )}
-      <Button component={Link} href="/my-requests" sx={navButtonSx}>
-        My requests
-      </Button>
       {/* Who's logged in. Hidden on phones (xs) so the buttons still fit on one line. */}
       <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1, ml: 1 }}>
         {/* Skip the name when it just repeats the role (the seed account is called "Admin"),
@@ -80,7 +82,7 @@ function HeaderActions() {
             {user.name}
           </Typography>
         )}
-        <Chip label={ROLE_LABELS[user.role]} size="small" color={isStaff ? 'primary' : 'default'} />
+        <Chip label={ROLE_LABELS[user.role]} size="small" color={staff ? 'primary' : 'default'} />
       </Box>
       <Button onClick={handleLogout} sx={navButtonSx}>
         Log out

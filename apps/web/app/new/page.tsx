@@ -3,6 +3,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import RequestForm from '@/components/RequestForm';
 import RequireAuth from '@/components/RequireAuth';
+import { USER_ROLES } from '@/lib/roles';
 import { CATEGORIES, type Category } from '@/lib/types';
 
 export const metadata = { title: 'New request | Daily Monitoring Ticketing System' };
@@ -37,7 +38,8 @@ async function FormWithCategory({ searchParams }: Pick<PageProps<'/new'>, 'searc
   // with the category they picked still in the address.
   const next = initialCategory ? `/new?category=${initialCategory}` : '/new';
   return (
-    <RequireAuth next={next}>
+    // Only Users submit; Admin and Developer see a pointer to Tickets instead of the form.
+    <RequireAuth next={next} roles={USER_ROLES}>
       <RequestForm initialCategory={initialCategory} />
     </RequireAuth>
   );

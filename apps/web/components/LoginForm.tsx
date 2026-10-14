@@ -11,6 +11,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useAuth } from '@/components/AuthProvider';
 import { validateLogin, type AuthErrors } from '@/lib/auth-validation';
+import { homePathFor } from '@/lib/roles';
 
 // next: where to go after logging in (already checked by safeNext on the page).
 export default function LoginForm({ next }: { next: string }) {
@@ -24,9 +25,13 @@ export default function LoginForm({ next }: { next: string }) {
 
   // As soon as someone is logged in (just now, or already when they opened this page),
   // move on. replace instead of push, so the Back button doesn't return to the login form.
+  // "/" means "no particular page was asked for", so each role goes to its own start page:
+  // Users to the welcome page, Admin and Developer straight to Tickets.
   useEffect(() => {
-    if (auth.status === 'authenticated') router.replace(next);
-  }, [auth.status, next, router]);
+    if (auth.status === 'authenticated') {
+      router.replace(next === '/' ? homePathFor(auth.user.role) : next);
+    }
+  }, [auth, next, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
