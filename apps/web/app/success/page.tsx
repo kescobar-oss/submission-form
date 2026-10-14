@@ -13,7 +13,8 @@ export const metadata = { title: 'Request received | Daily Monitoring Ticketing 
 // Next.js can prepare it ahead of time, and only <ReferenceId> waits for the URL.
 export default function SuccessPage({ searchParams }: PageProps<'/success'>) {
   return (
-    <Paper sx={{ p: { xs: 2, sm: 4 } }}>
+    // Same moderate width as the form it follows, centred in the wider "lg" frame.
+    <Paper sx={{ p: { xs: 2, sm: 4 }, maxWidth: 'md', mx: 'auto' }}>
       <Stack spacing={2}>
         <Typography variant="h4" component="h1">
           Thank you!

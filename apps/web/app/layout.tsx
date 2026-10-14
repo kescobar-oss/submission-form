@@ -39,9 +39,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
                 "who's logged in?" with useAuth(). */}
             <AuthProvider>
               <SiteHeader />
-              {/* Container centres the page and caps its width. The py value is responsive:
-                  2 spacing units of vertical padding on phones, 4 from the "sm" breakpoint up. */}
-              <Container component="main" maxWidth="md" sx={{ py: { xs: 2, sm: 4 } }}>
+              {/* Container centres the page and caps its width. "lg" (about 1200 px) leaves
+                  room for the wide Tickets and Submissions tables; pages with a single form
+                  (/new, /success) narrow themselves again with their own maxWidth.
+                  The py value is responsive: 2 spacing units of vertical padding on phones,
+                  4 from the "sm" breakpoint up. */}
+              <Container component="main" maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
                 {children}
               </Container>
             </AuthProvider>

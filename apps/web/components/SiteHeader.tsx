@@ -115,7 +115,7 @@ export default function SiteHeader() {
       }}
     >
       {/* Container lines the header up with the page content below it. */}
-      <Container maxWidth="md">
+      <Container maxWidth="lg">
         <Toolbar disableGutters>
           {/* The logo and title together are a link home, like on most websites. */}
           <Box

@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import RequestForm from '@/components/RequestForm';
@@ -14,7 +15,9 @@ export const metadata = { title: 'New request | Daily Monitoring Ticketing Syste
 // prepared ahead of time; only <FormWithCategory> waits for the address bar.
 export default function NewRequestPage({ searchParams }: PageProps<'/new'>) {
   return (
-    <>
+    // A form reads best in a column of moderate width, so this page stays narrower than
+    // the "lg" frame from layout.tsx (which is wide for the tables' sake).
+    <Box sx={{ maxWidth: 'md', mx: 'auto' }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Submit a request
       </Typography>
@@ -25,7 +28,7 @@ export default function NewRequestPage({ searchParams }: PageProps<'/new'>) {
       <Suspense fallback={<Skeleton variant="rounded" height={560} />}>
         <FormWithCategory searchParams={searchParams} />
       </Suspense>
-    </>
+    </Box>
   );
 }
 
