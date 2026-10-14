@@ -1,7 +1,7 @@
 // Every call from the web app to the API lives in this file. Pages never call fetch
 // themselves, so if the API's address or error format changes, this is the only file to fix.
 import { notifyExpired, readToken } from './session';
-import type { AuthResponse, CreatedRequest, FeatureRequest, FeatureRequestInput, User } from './types';
+import type { AuthResponse, CreatedRequest, FeatureRequest, FeatureRequestInput, Status, User } from './types';
 
 // Read from .env.local now, and from Vercel's settings later. Because of the NEXT_PUBLIC_
 // prefix, Next.js pastes this value into the JavaScript every visitor downloads, which is
@@ -18,6 +18,8 @@ export type ApiResult<T> =
   | { ok: false; kind: 'unauthorized'; messages: string[] }
   // 403: logged in, but this account's role isn't allowed to do it.
   | { ok: false; kind: 'forbidden' }
+  // 404: the thing doesn't exist (e.g. a ticket that was deleted).
+  | { ok: false; kind: 'notFound' }
   // 409: clashes with something that exists, e.g. signing up with an email that's taken.
   | { ok: false; kind: 'conflict'; messages: string[] }
   // The API couldn't be reached at all (switched off, wrong URL, no internet, CORS refusal).
@@ -46,6 +48,16 @@ export function register(name: string, email: string, password: string) {
 // GET /auth/me: "who does my saved token belong to?" Also tells us whether it still works.
 export function getMe() {
   return send<User>('/auth/me', {});
+}
+
+// PATCH /requests/:id/status: Admin and Developer change one ticket's status.
+// encodeURIComponent keeps an odd id from breaking the address (ids are safe today, but cheap insurance).
+export function updateStatus(id: string, status: Status) {
+  return send<{ id: string; status: Status }>(`/requests/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
 }
 
 // GET /requests/mine: the logged-in person's own requests, newest first.
@@ -102,6 +114,9 @@ async function send<T>(path: string, init: RequestInit): Promise<ApiResult<T>> {
   }
   if (response.status === 403) {
     return { ok: false, kind: 'forbidden' };
+  }
+  if (response.status === 404) {
+    return { ok: false, kind: 'notFound' };
   }
   if (response.status === 409) {
     return { ok: false, kind: 'conflict', messages: await readMessages(response) };
