@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Paper from '@mui/material/Paper';
+import InputAdornment from '@mui/material/InputAdornment';
+import MuiLink from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import { useAuth } from '@/components/AuthProvider';
+import PasswordField from '@/components/PasswordField';
 import { validateLogin, type AuthErrors } from '@/lib/auth-validation';
 import { homePathFor } from '@/lib/roles';
 
@@ -56,45 +59,63 @@ export default function LoginForm({ next }: { next: string }) {
     }
   }
 
+  // No Paper here: AuthCard (on the page) draws the card around this form.
   return (
-    <Paper sx={{ p: { xs: 2, sm: 4 } }}>
-      <form onSubmit={handleSubmit} noValidate>
-        <Stack spacing={3}>
-          {alert && <Alert severity="error">{alert}</Alert>}
-          <TextField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={Boolean(errors.email)}
-            helperText={errors.email}
-            // Lets password managers recognise this as a login form and fill it in.
-            autoComplete="email"
-            autoFocus
-            required
-            fullWidth
-          />
-          <TextField
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={Boolean(errors.password)}
-            helperText={errors.password}
-            autoComplete="current-password"
-            required
-            fullWidth
-          />
-          <Button type="submit" variant="contained" size="large" loading={submitting}>
-            Log in
-          </Button>
-          <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-            No account yet?{' '}
-            {/* Keep ?next= so signing up returns them to the same place. */}
-            <Link href={`/register?next=${encodeURIComponent(next)}`}>Create an account</Link>
-          </Typography>
-        </Stack>
-      </form>
-    </Paper>
+    <form onSubmit={handleSubmit} noValidate>
+      <Stack spacing={3}>
+        {alert && <Alert severity="error">{alert}</Alert>}
+        <TextField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={Boolean(errors.email)}
+          helperText={errors.email}
+          // Lets password managers recognise this as a login form and fill it in.
+          autoComplete="email"
+          autoFocus
+          required
+          fullWidth
+          // A small envelope inside the field, so it's recognisable at a glance.
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <MailOutlineRoundedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        {/* Lock icon + show/hide button, shared with the sign-up form. */}
+        <PasswordField
+          label="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={Boolean(errors.password)}
+          helperText={errors.password}
+          autoComplete="current-password"
+          required
+          fullWidth
+        />
+        <Button type="submit" variant="contained" size="large" fullWidth loading={submitting}>
+          Log in
+        </Button>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+          No account yet?{' '}
+          {/* MuiLink gives the theme's link colour and underline-on-hover; component={Link}
+              keeps Next.js's fast page change. ?next= is kept so signing up returns them
+              to the same place. */}
+          <MuiLink
+            component={Link}
+            href={`/register?next=${encodeURIComponent(next)}`}
+            underline="hover"
+            sx={{ fontWeight: 600 }}
+          >
+            Create an account
+          </MuiLink>
+        </Typography>
+      </Stack>
+    </form>
   );
 }
