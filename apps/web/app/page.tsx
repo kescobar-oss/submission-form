@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CategoryCards from '@/components/CategoryCards';
 import FadeIn from '@/components/FadeIn';
+import StaffRedirect from '@/components/StaffRedirect';
 
 // The welcome page at /. A server component (no 'use client'): the text never changes, so
 // it's built once into HTML. Picking a card goes to /new with that category pre-selected.
@@ -28,6 +29,8 @@ export default function Home() {
         </Typography>
       </FadeIn>
       <CategoryCards />
+      {/* Sends a logged-in Admin or Developer straight on to /tickets. */}
+      <StaffRedirect />
     </Box>
   );
 }

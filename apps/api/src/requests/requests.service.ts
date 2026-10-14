@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
+import type { Status } from '../../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateRequestDto } from './dto/create-request.dto.js';
 
@@ -32,6 +34,24 @@ export class RequestsService {
       // keeps this sort fast as the table grows.
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async updateStatus(id: string, status: Status) {
+    try {
+      return await this.prisma.featureRequest.update({
+        where: { id },
+        data: { status },
+        // Send back only what changed, not the submitter's personal data.
+        select: { id: true, status: true },
+      });
+    } catch (error) {
+      // P2025 is Prisma's code for "no row matched the where": the ticket doesn't exist.
+      // Turn it into a 404 instead of letting it surface as a 500.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new NotFoundException('Ticket not found');
+      }
+      throw error;
+    }
   }
 
   // Only the caller's own requests. The userId comes from their token, so nobody can ask

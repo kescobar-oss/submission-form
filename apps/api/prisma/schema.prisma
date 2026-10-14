@@ -44,6 +44,10 @@ model FeatureRequest {
   // Filled in automatically by the database at the moment the row is saved.
   createdAt   DateTime @default(now())
 
+  // Where the ticket stands. Every new ticket starts as OPEN ("nobody has looked yet");
+  // only Admin and Developer can change it. Existing rows become OPEN when this column is added.
+  status      Status   @default(OPEN)
+
   // Who submitted it. Optional (the "?") because requests made before logins existed have
   // no author; every new request gets one. name and email above are still stored, copied
   // from the account at the moment of submitting.
@@ -57,6 +61,16 @@ model FeatureRequest {
   @@index([createdAt])
   // "My requests" looks up rows by userId, so that needs an index too.
   @@index([userId])
+}
+
+// The stages a ticket can be in. An enum, like Category, so the database itself refuses
+// anything else ("done", "Complete ", ...).
+enum Status {
+  OPEN
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  REJECTED
 }
 
 // What an account is allowed to do. Kept in the database (not chosen by the browser),

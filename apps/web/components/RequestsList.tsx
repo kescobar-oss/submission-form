@@ -6,11 +6,12 @@ import Link from 'next/link';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
+import Snackbar from '@mui/material/Snackbar';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import RequestsTable from '@/components/RequestsTable';
-import { listMyRequests, listRequests } from '@/lib/api';
-import type { FeatureRequest } from '@/lib/types';
+import { listMyRequests, listRequests, updateStatus } from '@/lib/api';
+import { STATUS_LABELS, type FeatureRequest, type Status } from '@/lib/types';
 
 // Which list to show. A plain string (not a function), so server pages can pass it in.
 type Source = 'all' | 'mine';
@@ -26,6 +27,10 @@ export default function RequestsList({ source }: { source: Source }) {
   const [state, setState] = useState<ListState>({ status: 'loading' });
   // Bumping this number makes the effect below run again: that's the Refresh button.
   const [reloads, setReloads] = useState(0);
+  // Ticket ids whose status change is still being saved.
+  const [savingIds, setSavingIds] = useState<ReadonlySet<string>>(new Set());
+  // The small message that pops up at the bottom after a status change ("Status saved").
+  const [notice, setNotice] = useState<{ severity: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     // If the page is left before the reply arrives, ignore the reply instead of updating
@@ -58,6 +63,46 @@ export default function RequestsList({ source }: { source: Source }) {
     setReloads((n) => n + 1);
   }
 
+  // Changes one row's status on screen (used for the new value, and to undo it on failure).
+  function setRowStatus(id: string, status: Status) {
+    setState((s) =>
+      s.status === 'loaded' ? { ...s, rows: s.rows.map((r) => (r.id === id ? { ...r, status } : r)) } : s,
+    );
+  }
+
+  // Staff picked a new status in a dropdown. The screen updates immediately (so it feels
+  // instant), the API saves it in the background, and if saving fails the old value comes
+  // back with an explanation. This pattern is called an "optimistic update".
+  async function handleStatusChange(id: string, status: Status) {
+    if (state.status !== 'loaded') return;
+    const previous = state.rows.find((r) => r.id === id)?.status;
+    if (!previous || previous === status) return;
+
+    setRowStatus(id, status);
+    setSavingIds((ids) => new Set(ids).add(id));
+    const result = await updateStatus(id, status);
+    setSavingIds((ids) => {
+      const next = new Set(ids);
+      next.delete(id);
+      return next;
+    });
+
+    if (result.ok) {
+      setNotice({ severity: 'success', message: `Status saved: ${STATUS_LABELS[status]}` });
+      return;
+    }
+    setRowStatus(id, previous); // undo: the database still has the old value
+    const why =
+      result.kind === 'notFound'
+        ? 'That ticket no longer exists. Try Refresh.'
+        : result.kind === 'forbidden'
+          ? "Your account can't change statuses."
+          : result.kind === 'network'
+            ? "We couldn't reach the server."
+            : 'Something went wrong on our side.';
+    setNotice({ severity: 'error', message: `Status not saved. ${why}` });
+  }
+
   if (state.status === 'loading') {
     return <Skeleton variant="rounded" height={240} />;
   }
@@ -85,8 +130,27 @@ export default function RequestsList({ source }: { source: Source }) {
 
   return (
     <Stack spacing={2}>
-      {/* On "mine", every row is yours, so the name and email columns are left out. */}
-      <RequestsTable rows={state.rows} showAuthor={source === 'all'} />
+      {/* On "mine", every row is yours, so the name and email columns are left out, and the
+          status is shown but can't be changed (no onStatusChange). */}
+      <RequestsTable
+        rows={state.rows}
+        showAuthor={source === 'all'}
+        onStatusChange={source === 'all' ? handleStatusChange : undefined}
+        savingIds={savingIds}
+      />
+      {/* Snackbar: a short message at the bottom of the screen that disappears by itself. */}
+      <Snackbar
+        open={notice !== null}
+        autoHideDuration={notice?.severity === 'error' ? 6000 : 2500}
+        onClose={() => setNotice(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        {notice ? (
+          <Alert severity={notice.severity} variant="filled" onClose={() => setNotice(null)}>
+            {notice.message}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
       <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="body2" color="text.secondary">
           {state.rows.length} request{state.rows.length === 1 ? '' : 's'}, newest first.

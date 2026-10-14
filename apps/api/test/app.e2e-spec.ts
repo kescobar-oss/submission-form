@@ -40,6 +40,10 @@ describe('Feature requests API (e2e)', () => {
       // Pretend the database saved the row and returned only what `select` asked for.
       create: vi.fn().mockResolvedValue(savedRow),
       findMany: vi.fn().mockResolvedValue([]),
+      // Pretend the ticket exists and now has the new status.
+      update: vi.fn(({ where, data }: { where: { id: string }; data: { status: string } }) =>
+        Promise.resolve({ id: where.id, status: data.status }),
+      ),
     },
     user: {
       // Finds storedUser by email, and nobody else, like a table with one row.
@@ -171,6 +175,75 @@ describe('Feature requests API (e2e)', () => {
       .get('/requests')
       .set('Authorization', `Bearer ${oldToken}`)
       .expect(401);
+  });
+
+  // Admin and Developer handle tickets; they don't submit them.
+  it('POST /requests as an admin returns 403', () => {
+    return request(app.getHttpServer())
+      .post('/requests')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send(validBody)
+      .expect(403);
+  });
+
+  it('POST /requests as a developer returns 403', () => {
+    return request(app.getHttpServer())
+      .post('/requests')
+      .set('Authorization', `Bearer ${developerToken}`)
+      .send(validBody)
+      .expect(403);
+  });
+
+  describe('PATCH /requests/:id/status', () => {
+    it('as an admin changes the status and returns { id, status }', async () => {
+      await request(app.getHttpServer())
+        .patch('/requests/ticket-1/status')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'IN_PROGRESS' })
+        .expect(200)
+        .expect({ id: 'ticket-1', status: 'IN_PROGRESS' });
+
+      expect(fakePrisma.featureRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'ticket-1' }, data: { status: 'IN_PROGRESS' } }),
+      );
+    });
+
+    it('as a developer is allowed too', () => {
+      return request(app.getHttpServer())
+        .patch('/requests/ticket-1/status')
+        .set('Authorization', `Bearer ${developerToken}`)
+        .send({ status: 'COMPLETED' })
+        .expect(200);
+    });
+
+    // A User must never be able to mark their own ticket COMPLETED.
+    it('as a user returns 403 and changes nothing', async () => {
+      await request(app.getHttpServer())
+        .patch('/requests/ticket-1/status')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ status: 'COMPLETED' })
+        .expect(403);
+      expect(fakePrisma.featureRequest.update).not.toHaveBeenCalled();
+    });
+
+    it('with a status that does not exist returns 400', () => {
+      return request(app.getHttpServer())
+        .patch('/requests/ticket-1/status')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'DONE' })
+        .expect(400);
+    });
+
+    it('for a ticket that does not exist returns 404', () => {
+      fakePrisma.featureRequest.update.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('Record not found', { code: 'P2025', clientVersion: 'test' }),
+      );
+      return request(app.getHttpServer())
+        .patch('/requests/no-such-ticket/status')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'PAUSED' })
+        .expect(404);
+    });
   });
 
   it('POST /requests without a token returns 401', () => {

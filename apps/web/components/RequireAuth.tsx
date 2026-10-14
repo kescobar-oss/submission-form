@@ -2,9 +2,12 @@
 // A client component: it reads the login state and can move the browser to another page.
 import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import { useAuth } from '@/components/AuthProvider';
+import { homePathFor, isStaff } from '@/lib/roles';
 import type { Role } from '@/lib/types';
 
 type Props = {
@@ -39,8 +42,20 @@ export default function RequireAuth({ next, roles, children }: Props) {
   }
 
   if (roles && !roles.includes(auth.user.role)) {
-    // The page-level version of the API's 403.
-    return <Alert severity="warning">Your account doesn&apos;t have access to this page.</Alert>;
+    // The page-level version of the API's 403, with a way back to where this role belongs
+    // (Tickets for staff, the welcome page for users).
+    return (
+      <Alert
+        severity="warning"
+        action={
+          <Button component={Link} href={homePathFor(auth.user.role)} color="inherit" size="small">
+            {isStaff(auth.user.role) ? 'Go to Tickets' : 'Go to start'}
+          </Button>
+        }
+      >
+        This page isn&apos;t available for your account.
+      </Alert>
+    );
   }
 
   return <>{children}</>;

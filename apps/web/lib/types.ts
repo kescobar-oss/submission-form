@@ -45,7 +45,20 @@ export type FeatureRequest = FeatureRequestInput &
   CreatedRequest & {
     name: string;
     email: string;
+    status: Status;
   };
+
+// Where a ticket stands, matching the Status enum in the API's Prisma schema. New tickets
+// start as OPEN; Admin and Developer change it, Users only see it.
+export const STATUSES = ['OPEN', 'IN_PROGRESS', 'PAUSED', 'COMPLETED', 'REJECTED'] as const;
+export type Status = (typeof STATUSES)[number];
+export const STATUS_LABELS: Record<Status, string> = {
+  OPEN: 'Open',
+  IN_PROGRESS: 'In Progress',
+  PAUSED: 'Paused',
+  COMPLETED: 'Completed',
+  REJECTED: 'Rejected',
+};
 
 // The three kinds of account, matching the Role enum in the API's Prisma schema.
 export const ROLES = ['USER', 'ADMIN', 'DEVELOPER'] as const;
