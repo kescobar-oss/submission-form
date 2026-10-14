@@ -1,4 +1,6 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RequestsService } from './requests.service.js';
 
@@ -11,6 +13,7 @@ describe('RequestsService', () => {
     featureRequest: {
       create: vi.fn(),
       findMany: vi.fn(),
+      update: vi.fn(),
     },
   };
 
@@ -58,6 +61,24 @@ describe('RequestsService', () => {
       const saved = { id: 'abc123', createdAt: new Date('2026-10-13T08:00:00Z') };
       fakePrisma.featureRequest.create.mockResolvedValue(saved);
       await expect(service.create(input, author)).resolves.toEqual(saved);
+    });
+  });
+
+  describe('updateStatus', () => {
+    it('changes only the status of that one ticket, and returns only id and status', async () => {
+      await service.updateStatus('ticket-1', 'PAUSED');
+      expect(fakePrisma.featureRequest.update).toHaveBeenCalledWith({
+        where: { id: 'ticket-1' },
+        data: { status: 'PAUSED' },
+        select: { id: true, status: true },
+      });
+    });
+
+    it('turns "no such ticket" into a 404', async () => {
+      fakePrisma.featureRequest.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Record not found', { code: 'P2025', clientVersion: 'test' }),
+      );
+      await expect(service.updateStatus('missing', 'PAUSED')).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 

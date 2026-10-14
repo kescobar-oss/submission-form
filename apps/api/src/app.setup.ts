@@ -16,7 +16,8 @@ export function configureApp(app: INestApplication) {
   // site at all (false), rather than falling back to "everyone".
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? false,
-    methods: ['GET', 'POST'],
+    // PATCH is how staff change a ticket's status; without it here, browsers would refuse.
+    methods: ['GET', 'POST', 'PATCH'],
     // Authorization carries the login token. It must be listed, or the browser refuses
     // to send it from the website.
     allowedHeaders: ['Content-Type', 'Authorization'],
