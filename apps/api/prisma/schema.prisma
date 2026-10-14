@@ -44,7 +44,44 @@ model FeatureRequest {
   // Filled in automatically by the database at the moment the row is saved.
   createdAt   DateTime @default(now())
 
+  // Who submitted it. Optional (the "?") because requests made before logins existed have
+  // no author; every new request gets one. name and email above are still stored, copied
+  // from the account at the moment of submitting.
+  userId      String?
+  // The link itself: userId must match an id in the User table. If an account is ever
+  // deleted, its requests are kept and simply lose their author (SetNull).
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   // The admin page lists requests "newest first". This index keeps that sorting fast
   // even when the table grows to many thousands of rows.
   @@index([createdAt])
+  // "My requests" looks up rows by userId, so that needs an index too.
+  @@index([userId])
+}
+
+// What an account is allowed to do. Kept in the database (not chosen by the browser),
+// so nobody can make themselves an admin by editing a request.
+enum Role {
+  USER
+  ADMIN
+  DEVELOPER
+}
+
+// One row per person who can log in.
+model User {
+  id           String   @id @default(cuid())
+  // @unique: the database itself refuses a second account with the same email,
+  // even if two sign-ups arrive at the same instant.
+  email        String   @unique
+  name         String
+  // Never the password itself: a one-way scrambled version (bcrypt). Even someone who
+  // reads the whole table can't turn this back into the password.
+  passwordHash String
+  // Everyone who signs up starts as USER. Admins and developers are made by the seed.
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+
+  // The other side of the link: "all requests this user submitted". It's not a column;
+  // Prisma uses it so the code can ask for a user's requests directly.
+  requests     FeatureRequest[]
 }
