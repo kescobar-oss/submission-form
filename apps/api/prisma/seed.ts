@@ -45,7 +45,7 @@ const exampleRequests = [
 // password is never written in this file (which is public on GitHub).
 const sampleAccounts = [
   { email: "user@example.com", name: "Sample User", role: Role.USER },
-  { email: "admin@example.com", name: "Sample Admin", role: Role.ADMIN },
+  { email: "admin@example.com", name: "Admin", role: Role.ADMIN },
   { email: "developer@example.com", name: "Sample Developer", role: Role.DEVELOPER },
 ];
 
