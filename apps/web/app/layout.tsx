@@ -17,7 +17,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: 'Feature Request Form',
+  title: 'Daily Monitoring Ticketing System',
   description: 'Send the product team a bug report, improvement or new feature idea.',
 };
 
