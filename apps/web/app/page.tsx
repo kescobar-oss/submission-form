@@ -1,18 +1,18 @@
 import Typography from '@mui/material/Typography';
-import RequestForm from '@/components/RequestForm';
+import CategoryCards from '@/components/CategoryCards';
 
-// A server component (no 'use client'): the heading never changes, so it's built once into
-// HTML. Only the interactive part, RequestForm, is sent to the browser as JavaScript.
+// The welcome page at /. A server component (no 'use client'): the text never changes, so
+// it's built once into HTML. Picking a card goes to /new with that category pre-selected.
 export default function Home() {
   return (
     <>
       <Typography variant="h4" component="h1" gutterBottom>
-        Submit a feature request
+        Welcome
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Found a bug or have an idea? Tell the product team.
+        What would you like to tell the product team?
       </Typography>
-      <RequestForm />
+      <CategoryCards />
     </>
   );
 }

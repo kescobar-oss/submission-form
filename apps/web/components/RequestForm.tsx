@@ -38,10 +38,16 @@ import {
   type FormValues,
 } from '@/lib/validation';
 
-export default function RequestForm() {
+// initialCategory is a prop: the page that shows this form can say which category to start
+// with (the one picked on the welcome page). It's optional, so the form also works without it.
+export default function RequestForm({ initialCategory }: { initialCategory?: Category }) {
   // State: React's memory for this component. `values` is what's been typed so far;
   // calling setValues stores new values AND tells React to redraw the form with them.
-  const [values, setValues] = useState<FormValues>(EMPTY_FORM);
+  // The starting category is only a suggestion: the dropdown can still change it.
+  const [values, setValues] = useState<FormValues>({
+    ...EMPTY_FORM,
+    category: initialCategory ?? '',
+  });
   // One message per field that failed validation; empty means no red text anywhere.
   const [errors, setErrors] = useState<FormErrors>({});
   // The three UI states of a request. Loading: submitting is true. Error: alert holds a

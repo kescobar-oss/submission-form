@@ -7,7 +7,7 @@ Role branch: `feat/frontend` · Builds on the merged API in [kescobar-oss/submis
 ## a. What we built
 
 We created `apps/web`, a Next.js (App Router) website styled with Material UI, with a shared theme, Roboto and a top bar on every page.
-It has three pages: the form at `/`, a confirmation at `/success?id=…`, and an admin table at `/submissions` that asks for the admin key and shows priority as coloured chips.
+It has three pages: the form at `/` (later moved to `/new` behind a welcome page; see "Update: the welcome page" below), a confirmation at `/success?id=…`, and an admin table at `/submissions` that asks for the admin key and shows priority as coloured chips.
 The form keeps everything you type in React state, checks it in the browser with the same rules as the API, and shows a spinner, the API's own messages or a "couldn't reach the server" alert depending on what happens.
 Every call to the API lives in one file, `lib/api.ts`, with shared TypeScript types in `lib/types.ts`.
 You ran the API, the web app and Prisma Studio side by side, submitted a real request, checked all four error cases and passed `npm run build`.
@@ -21,7 +21,9 @@ All paths are inside `apps/web/`.
 | Path | Language | Purpose | Will you edit it again? |
 |---|---|---|---|
 | `app/layout.tsx` | TypeScript + JSX | Wraps every page: loads Roboto, applies the theme and CssBaseline, adds the header and the centred column. | Rarely. |
-| `app/page.tsx` | TypeScript + JSX | The page at `/`: heading, intro line and the form. Server component. | Sometimes (wording). |
+| `app/page.tsx` | TypeScript + JSX | The welcome page at `/`: heading, one line and the three category cards. Server component. | Sometimes (wording). |
+| `app/new/page.tsx` | TypeScript + JSX | The page at `/new`: reads `?category=`, keeps it only if allowed, and shows the form with it pre-selected. | Rarely. |
+| `components/CategoryCards.tsx` | TypeScript + JSX | The three clickable cards on the welcome page; their wording is in the `CHOICES` list. Client component. | **Yes**, to change card wording. |
 | `app/success/page.tsx` | TypeScript + JSX | The page at `/success`: reads `?id=` and shows the reference ID and "Submit another". | Rarely. |
 | `app/submissions/page.tsx` | TypeScript + JSX | The page at `/submissions`: heading plus the admin view. Server component. | Rarely. |
 | `components/RequestForm.tsx` | TypeScript + JSX | The form: state, validation, sending, loading/success/error. Client component. | **Yes**, whenever a field changes. |
@@ -42,7 +44,7 @@ All paths are inside `apps/web/`.
 
 ## c. A request's journey through the frontend
 
-1. You open `http://localhost:3002/`. Next.js sends the ready-made HTML for the heading and the form, plus the JavaScript for `RequestForm` (the only interactive part).
+1. You open `http://localhost:3002/` and see the welcome page. Clicking a card (e.g. **Report a bug**) goes to `/new?category=BUG`. That page reads `category` from the address, checks it's an allowed value, and sends the HTML for the heading and the form with **Bug** pre-selected, plus the JavaScript for `RequestForm` (the only interactive part).
 2. Each keystroke runs `onChange`, which calls `update(...)`, which stores the new text in the `values` state. React redraws the field from that state.
 3. You press **Submit request**. `handleSubmit` stops the browser's default page reload and runs `validate(values)` from `lib/validation.ts`.
 4. If anything is wrong, the messages go into the `errors` state, each field shows its own `error` + `helperText`, and nothing is sent.
@@ -63,7 +65,7 @@ The admin page follows the same pattern: the key goes into state, **Load** calls
 
 A MUI `TextField` is a finished component: the label, the border, the animation and the red error look are built in. You only set **props**: `label`, `value`, `error`, `helperText`, `fullWidth`. In your Tailwind project you'd have built the same field from an `<input>`, a `<label>`, a `<p>` and a dozen classes.
 
-👉 [components/RequestForm.tsx:111-121](../../apps/web/components/RequestForm.tsx) (the Name field), especially `error` and `helperText` on lines 116-117.
+👉 [components/RequestForm.tsx:117-127](../../apps/web/components/RequestForm.tsx) (the Name field), especially `error` and `helperText` on lines 122-123.
 
 ### 2. Material UI vs. Tailwind, and when to use `sx`
 
@@ -75,7 +77,7 @@ Tailwind gives you small utility classes (`px-4 bg-blue-600`) to build every loo
 
 `useState` gives a component a memory. Calling the setter stores the new value **and** redraws the component. A **controlled input** reads its `value` from state and writes every change back with `onChange`, so state is the one source of truth: validation, the character counter and the data we send all read from the same place.
 
-👉 [components/RequestForm.tsx:44](../../apps/web/components/RequestForm.tsx) (`useState<FormValues>`), then lines 113-114 (`value={values.name}` / `onChange`).
+👉 [components/RequestForm.tsx:47](../../apps/web/components/RequestForm.tsx) (`useState<FormValues>`), then lines 119-120 (`value={values.name}` / `onChange`).
 
 ### 4. Client components vs. server components
 
@@ -87,13 +89,13 @@ In the App Router every component is a **server component** unless its file star
 
 `fetch` is the browser's way to send a request to another server. Data must travel as text, so `JSON.stringify` turns the form's object into a JSON string and the `Content-Type` header tells the API how to read it. `await` pauses only that one function until the reply arrives; the rest of the page keeps working, which is why the spinner can spin.
 
-👉 [lib/api.ts:30](../../apps/web/lib/api.ts) (`JSON.stringify`), [lib/api.ts:48](../../apps/web/lib/api.ts) (`await fetch`), and [components/RequestForm.tsx:70](../../apps/web/components/RequestForm.tsx) (`await createRequest`).
+👉 [lib/api.ts:30](../../apps/web/lib/api.ts) (`JSON.stringify`), [lib/api.ts:48](../../apps/web/lib/api.ts) (`await fetch`), and [components/RequestForm.tsx:76](../../apps/web/components/RequestForm.tsx) (`await createRequest`).
 
 ### 6. Three UI states for every request
 
 A request is always **loading**, **succeeded** or **failed**, and each needs something on screen: a disabled button with a spinner, the next page, or a message. Forget one and users see a frozen button or a silent failure. `ApiResult` lists every outcome, so TypeScript reminds each page to handle them all.
 
-👉 [lib/api.ts:12](../../apps/web/lib/api.ts) (`ApiResult`), [components/RequestForm.tsx:49](../../apps/web/components/RequestForm.tsx) (`submitting`), line 84 (success), lines 89-99 (errors), line 210 (`loading={submitting}`).
+👉 [lib/api.ts:12](../../apps/web/lib/api.ts) (`ApiResult`), [components/RequestForm.tsx:55](../../apps/web/components/RequestForm.tsx) (`submitting`), line 90 (success), lines 95-105 (errors), line 216 (`loading={submitting}`).
 
 ### 7. `NEXT_PUBLIC_` variables are public
 
@@ -153,6 +155,10 @@ The admin key lives only in `useState`. It's never written to `localStorage` or 
 | **Port** | A numbered "door" on your computer; only one program can listen on each. |
 | **CORS** | The browser's rule that a page may only call another server if that server allows the page's address. |
 | **Production build** | `npm run build`: the optimised version that Vercel will run, and the strictest error check. |
+| **`searchParams`** | Next.js's name for the query string a page receives. In this version it's a Promise, so the page awaits it. |
+| **Card** | MUI's box with a light shadow that groups related content. |
+| **CardActionArea** | Makes a whole Card one clickable area, with a hover shade and ripple. |
+| **Data-driven list** | Content kept in a list and drawn with `.map()`, so changing words never means touching layout code. |
 | **Static / Partial Prerender** | Pages built ahead of time (○), or built ahead except for parts filled in per visit (◐). |
 
 ---
@@ -170,6 +176,27 @@ In `apps/web/components/SubmissionsView.tsx`, change `LOW: 'success'` in `PRIORI
 ### 3. Allow longer names, in both places
 
 Make names up to 100 characters. In `apps/web/lib/validation.ts`, change `NAME_MAX = 80` to `100`. Try a 90-character name: the browser accepts it, but the API replies 400 and the message appears under the field. That's takeaway 8. Now the API's DTO also needs `@Length(2, 100)`; that's the backend's file (`apps/api/src/requests/dto/create-request.dto.ts`), so you'd make that change on a backend branch.
+
+---
+
+## Update: the welcome page
+
+Branch `feat/welcome-page`, added after the frontend role was merged.
+
+**What changed.** The homepage `/` is now a welcome page that asks what you'd like to send: **Report a bug**, **Suggest an improvement** or **Request a feature**. Each card opens the form at `/new` with that category already selected, e.g. `/new?category=BUG`, and the dropdown can still be changed. Opening `/new` directly, or with a made-up category, shows the form with nothing selected. The header's **New** button and the success page's **Submit another** both lead to the welcome page. The database and API didn't change: the three cards are the three categories that already existed.
+
+**Takeaways**
+
+1. **Passing settings through a link.** The query string (`?category=BUG`) lets one page tell the next what was chosen, with no shared state. The page reads it from `searchParams`, which this Next.js version gives as a Promise, so it's awaited inside a `<Suspense>` boundary, exactly like `/success` reads `?id=`.
+   👉 [app/new/page.tsx:32-35](../../apps/web/app/new/page.tsx)
+2. **Never trust the address bar.** Anyone can type any link, so only an exact allowed value is used and everything else is ignored. The API would still reject a bad value, but the page shouldn't show one either.
+   👉 [app/new/page.tsx:40-42](../../apps/web/app/new/page.tsx) (`toCategory`)
+3. **An optional prop with a starting value.** `RequestForm` takes `initialCategory` and uses it only to fill its starting state; after that, the visitor is in control.
+   👉 [components/RequestForm.tsx:43-50](../../apps/web/components/RequestForm.tsx)
+4. **Data-driven cards.** The three cards come from one `CHOICES` list drawn with `.map()`. Changing wording, or adding a card for a new category, means editing that list only.
+   👉 [components/CategoryCards.tsx:13-17](../../apps/web/components/CategoryCards.tsx)
+
+**Exercise.** Change the text under **Request a feature** in the `CHOICES` list in `apps/web/components/CategoryCards.tsx`, save, and watch `http://localhost:3002/` update. Then try `http://localhost:3002/new?category=IMPROVEMENT` and `?category=improvement` (lowercase). Why does the second one leave the dropdown empty?
 
 ---
 
